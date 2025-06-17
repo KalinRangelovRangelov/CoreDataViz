@@ -7,7 +7,6 @@
     
     <!-- External Dependencies -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
     <style>
@@ -90,8 +89,8 @@
             border-bottom: 1px solid #e5e5e7;
         }
 
-        .drop-zone {
-            border: 2px dashed #d2d2d7;
+        .folder-selector {
+            border: 2px solid #d2d2d7;
             border-radius: 8px;
             padding: 2rem;
             text-align: center;
@@ -100,23 +99,24 @@
             background: #f9f9fa;
         }
 
-        .drop-zone:hover, .drop-zone.drag-over {
+        .folder-selector:hover {
             border-color: #007AFF;
             background: #f0f8ff;
         }
 
-        .drop-zone p {
+        .folder-selector p {
             margin: 0.5rem 0;
             color: #86868b;
         }
 
-        .drop-zone p:first-child {
+        .folder-selector p:first-child {
             font-weight: 600;
             color: #1d1d1f;
         }
 
         .file-inputs {
             margin-top: 1rem;
+            margin-bottom: 1rem;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
@@ -445,18 +445,14 @@
     <main class="app-main">
         <aside class="sidebar">
             <section class="file-input">
-                <div id="drop-zone" class="drop-zone">
-                    <p>Drag & Drop Files Here</p>
-                    <p>Supports: .xcdatamodeld, .zip, .sqlite</p>
+                <div id="folder-selector" class="folder-selector">
+                    <p>Select .xcdatamodeld Folder</p>
+                    <p>Choose the Core Data model bundle from your Xcode project</p>
                     <div class="file-inputs">
-                        <button class="file-input-button" onclick="document.getElementById('file-input').click()">
-                            Select Files
-                        </button>
                         <button class="file-input-button" onclick="document.getElementById('folder-input').click()">
-                            Select Folder
+                            Select .xcdatamodeld Folder
                         </button>
                     </div>
-                    <input type="file" id="file-input" multiple accept=".sqlite,.db,.zip,.xcdatamodeld">
                     <input type="file" id="folder-input" webkitdirectory>
                 </div>
             </section>
@@ -496,12 +492,6 @@
         // File Type Detection
         class FileTypeDetector {
             static detectFileType(file) {
-                if (file.name.endsWith('.sqlite') || file.name.endsWith('.db')) {
-                    return 'sqlite';
-                }
-                if (file.name.endsWith('.zip')) {
-                    return 'zip_archive';
-                }
                 if (file.name === 'contents' && file.webkitRelativePath) {
                     return 'xcdatamodel_contents';
                 }
@@ -919,8 +909,8 @@
             }
         }
 
-        // File Drop Zone Handler
-        class FileDropZone {
+        // Folder Selector Handler
+        class FolderSelector {
             constructor(elementId, onFilesProcessed) {
                 this.element = document.getElementById(elementId);
                 this.onFilesProcessed = onFilesProcessed;
@@ -928,41 +918,16 @@
             }
             
             setupEventListeners() {
-                this.element.addEventListener('dragover', this.handleDragOver.bind(this));
-                this.element.addEventListener('dragleave', this.handleDragLeave.bind(this));
-                this.element.addEventListener('drop', this.handleDrop.bind(this));
                 this.element.addEventListener('click', this.showFilePicker.bind(this));
                 
-                // File input handlers
-                document.getElementById('file-input').addEventListener('change', (e) => {
-                    this.processFiles(Array.from(e.target.files));
-                });
-                
+                // Folder input handler
                 document.getElementById('folder-input').addEventListener('change', (e) => {
                     this.processFiles(Array.from(e.target.files));
                 });
             }
             
-            handleDragOver(event) {
-                event.preventDefault();
-                this.element.classList.add('drag-over');
-            }
-            
-            handleDragLeave(event) {
-                event.preventDefault();
-                this.element.classList.remove('drag-over');
-            }
-            
-            async handleDrop(event) {
-                event.preventDefault();
-                this.element.classList.remove('drag-over');
-                
-                const files = Array.from(event.dataTransfer.files);
-                await this.processFiles(files);
-            }
-            
             showFilePicker() {
-                // This will be handled by button clicks
+                // This will be handled by button click
             }
             
             async processFiles(files) {
@@ -987,18 +952,12 @@
                     case 'xcdatamodel_bundle':
                         await this.handleCoreDataFile(file);
                         break;
-                    case 'zip_archive':
-                        await this.handleZipFile(file);
-                        break;
-                    case 'sqlite':
-                        await this.handleSQLiteFile(file);
-                        break;
                     default:
-                        // Try to parse as XML content
+                        // Try to parse as XML content if it's an XML file
                         if (file.name.endsWith('.xml') || file.type === 'text/xml') {
                             await this.handleCoreDataFile(file);
                         } else {
-                            throw new Error(`Unsupported file type: ${file.name}`);
+                            throw new Error(`Unsupported file type: ${file.name}. Please select a .xcdatamodeld folder.`);
                         }
                 }
             }
@@ -1011,35 +970,6 @@
                 if (this.onFilesProcessed) {
                     this.onFilesProcessed(model);
                 }
-            }
-            
-            async handleZipFile(file) {
-                const zip = await JSZip.loadAsync(file);
-                let foundModel = false;
-                
-                for (const [path, zipFile] of Object.entries(zip.files)) {
-                    if (path.endsWith('contents') && path.includes('.xcdatamodel')) {
-                        const xmlText = await zipFile.async('text');
-                        const parser = new CoreDataModelParser();
-                        const model = parser.parseXMLContents(xmlText);
-                        
-                        if (this.onFilesProcessed) {
-                            this.onFilesProcessed(model);
-                        }
-                        foundModel = true;
-                        break;
-                    }
-                }
-                
-                if (!foundModel) {
-                    throw new Error('No Core Data model found in ZIP archive');
-                }
-            }
-            
-            async handleSQLiteFile(file) {
-                // Placeholder for SQLite handling
-                console.log('SQLite file handling not yet implemented');
-                throw new Error('SQLite file support coming soon');
             }
             
             showError(message) {
@@ -1059,8 +989,8 @@
             }
             
             initializeComponents() {
-                // Initialize file drop zone
-                this.fileDropZone = new FileDropZone('drop-zone', (model) => {
+                // Initialize folder selector
+                this.folderSelector = new FolderSelector('folder-selector', (model) => {
                     this.loadModel(model);
                 });
                 
