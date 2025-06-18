@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Core Data Model Visualizer</title>
-    
+
     <!-- External Dependencies -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    
+
     <style>
         /* Reset and Base Styles */
         * {
@@ -61,14 +61,14 @@
             background: rgba(255,255,255,0.3);
         }
 
-        /* Main Layout */
+        /* Main Layout - Three Column */
         .app-main {
             display: flex;
             height: calc(100vh - 80px);
         }
 
-        .sidebar {
-            width: 450px;
+        .left-sidebar {
+            width: 300px;
             background: white;
             border-right: 1px solid #e5e5e7;
             display: flex;
@@ -81,6 +81,15 @@
             display: flex;
             flex-direction: column;
             background: white;
+        }
+
+        .right-sidebar {
+            width: 450px;
+            background: white;
+            border-left: 1px solid #e5e5e7;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
         }
 
         /* File Input Section */
@@ -120,6 +129,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            align-items: center;
         }
 
         .file-inputs input[type="file"] {
@@ -130,14 +140,20 @@
             background: #007AFF;
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1.5rem;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
+            width: 100%;
+            max-width: 250px;
         }
 
         .file-input-button:hover {
             background: #0056b3;
+        }
+
+        #folder-input {
+            display: none;
         }
 
         /* Entity List Section */
@@ -212,46 +228,142 @@
             color: rgba(255,255,255,0.8);
         }
 
-        /* View Tabs */
-        .view-tabs {
-            display: flex;
-            background: #f9f9fa;
-            border-bottom: 1px solid #e5e5e7;
+        /* Right Sidebar - Entity Details */
+        .entity-details {
+            padding: 1.5rem;
         }
 
-        .tab {
-            flex: 1;
-            padding: 1rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        .entity-details h3 {
+            margin-bottom: 1rem;
+            color: #1d1d1f;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .entity-details .entity-icon {
+            width: 20px;
+            height: 20px;
+            background: #007AFF;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .details-section {
+            margin-bottom: 2rem;
+        }
+
+        .details-section h4 {
+            margin-bottom: 1rem;
+            color: #1d1d1f;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 0.85rem;
+        }
+
+        .details-table th {
+            background: #f9f9fa;
+            color: #1d1d1f;
+            font-weight: 600;
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e5e7;
+            font-size: 0.8rem;
+        }
+
+        .details-table td {
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: top;
+        }
+
+        .details-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .details-table tr:hover {
+            background: #f9f9fa;
+        }
+
+        .table-name {
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .table-type {
+            color: #007AFF;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+        }
+
+        .table-properties {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .property-tag {
+            display: inline-block;
+            background: #e5e5e7;
+            color: #1d1d1f;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.65rem;
             font-weight: 500;
         }
 
-        .tab.active {
-            background: white;
-            color: #007AFF;
-            border-bottom: 2px solid #007AFF;
+        .property-tag.optional {
+            background: #ff9500;
+            color: white;
         }
 
-        .tab:hover:not(.active) {
-            background: #f0f0f0;
+        .property-tag.required {
+            background: #34c759;
+            color: white;
         }
 
-        /* View Containers */
-        .view-container {
-            flex: 1;
-            display: none;
-            overflow: auto;
+        .property-tag.indexed {
+            background: #007aff;
+            color: white;
         }
 
-        .view-container.active {
-            display: block;
+        .property-tag.to-many {
+            background: #af52de;
+            color: white;
+        }
+
+        .property-tag.to-one {
+            background: #5ac8fa;
+            color: white;
+        }
+
+        .empty-table-message {
+            color: #86868b;
+            font-style: italic;
+            padding: 2rem;
+            text-align: center;
+            background: #f9f9fa;
+            border-radius: 8px;
         }
 
         /* Graph Container */
         #graph-container {
+            flex: 1;
             position: relative;
             background: #ffffff;
         }
@@ -331,59 +443,6 @@
             stroke-width: 3;
         }
 
-        /* Table View */
-        #table-container {
-            padding: 1.5rem;
-        }
-
-        .table-view {
-            background: white;
-            border: 1px solid #e5e5e7;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .table-header {
-            background: #f9f9fa;
-            padding: 1rem;
-            border-bottom: 1px solid #e5e5e7;
-            font-weight: 600;
-        }
-
-        .table-content {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .table-row {
-            display: flex;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .table-row:last-child {
-            border-bottom: none;
-        }
-
-        .table-row:hover {
-            background: #f9f9fa;
-        }
-
-        .table-cell {
-            flex: 1;
-            font-size: 0.9rem;
-        }
-
-        .table-cell.name {
-            font-weight: 500;
-        }
-
-        .table-cell.type {
-            color: #007AFF;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.8rem;
-        }
-
         /* Loading and Error States */
         .loading {
             display: flex;
@@ -391,6 +450,13 @@
             align-items: center;
             height: 200px;
             color: #86868b;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .loading .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
         }
 
         .error {
@@ -401,33 +467,55 @@
             margin: 1rem;
         }
 
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #86868b;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .empty-state h4 {
+            margin-bottom: 0.5rem;
+            color: #1d1d1f;
+        }
+
         /* Responsive Design */
+        @media (max-width: 1200px) {
+            .right-sidebar {
+                width: 300px;
+            }
+        }
+
         @media (max-width: 768px) {
             .app-main {
                 flex-direction: column;
             }
-            
-            .sidebar {
+
+            .left-sidebar, .right-sidebar {
                 width: 100%;
-                height: 250px;
+                height: 200px;
             }
-            
+
             .app-header {
                 padding: 1rem;
             }
-            
+
             .app-header h1 {
                 font-size: 1.2rem;
             }
-            
+
             .toolbar {
                 display: none;
-            }
-        }
-
-        @media (max-width: 1024px) and (min-width: 769px) {
-            .sidebar {
-                width: 350px;
             }
         }
     </style>
@@ -441,54 +529,62 @@
             <button id="reset-zoom">Reset View</button>
         </div>
     </header>
-    
+
     <main class="app-main">
-        <aside class="sidebar">
+        <!-- Left Sidebar - File Input & Entity List -->
+        <aside class="left-sidebar">
             <section class="file-input">
                 <div id="folder-selector" class="folder-selector">
-                    <p>Select .xcdatamodeld Folder</p>
-                    <p>Choose the Core Data model bundle from your Xcode project</p>
+                    <p></p>
+                    <p>Choose .xcdatamodeld </p>
                     <div class="file-inputs">
                         <button class="file-input-button" onclick="document.getElementById('folder-input').click()">
-                            Select .xcdatamodeld Folder
+                            Select Folder
                         </button>
                     </div>
                     <input type="file" id="folder-input" webkitdirectory>
                 </div>
             </section>
-            
+
             <section class="entity-list">
                 <h3>Entities</h3>
                 <div class="search-container">
-                    <input 
-                        type="text" 
-                        id="entity-search" 
-                        class="search-input" 
+                    <input
+                        type="text"
+                        id="entity-search"
+                        class="search-input"
                         placeholder="Search entities..."
                     >
                 </div>
                 <div id="entities-container">
-                    <div class="loading">No model loaded</div>
+                    <div class="loading">
+                        <div class="icon">📊</div>
+                        <div>No model loaded</div>
+                    </div>
                 </div>
             </section>
         </aside>
-        
+
+        <!-- Main Content - Graph View -->
         <section class="main-content">
-            <div class="view-tabs">
-                <button class="tab active" data-view="graph">Graph View</button>
-                <button class="tab" data-view="table">Table View</button>
-            </div>
-            
-            <div id="graph-container" class="view-container active"></div>
-            <div id="table-container" class="view-container">
-                <div class="loading">Select an entity to view details</div>
-            </div>
+            <div id="graph-container"></div>
         </section>
+
+        <!-- Right Sidebar - Entity Details -->
+        <aside class="right-sidebar">
+            <div class="entity-details">
+                <div class="empty-state">
+                    <div class="icon">🎯</div>
+                    <h4>Select an Entity</h4>
+                    <p>Click on an entity in the graph or list to view its details</p>
+                </div>
+            </div>
+        </aside>
     </main>
 
     <script>
         // Core Data Model Visualizer Application
-        
+
         // File Type Detection
         class FileTypeDetector {
             static detectFileType(file) {
@@ -508,30 +604,30 @@
                 try {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(xmlString, 'application/xml');
-                    
+
                     // Check for parsing errors
                     const parserError = doc.querySelector('parsererror');
                     if (parserError) {
                         throw new Error('Invalid XML format');
                     }
-                    
+
                     const model = {
                         entities: this.extractEntities(doc),
                         version: doc.documentElement.getAttribute('systemVersion') || 'Unknown',
                         codeGeneration: doc.documentElement.getAttribute('documentVersion') || 'Unknown'
                     };
-                    
+
                     return this.resolveRelationships(model);
                 } catch (error) {
                     console.error('Error parsing XML:', error);
                     throw error;
                 }
             }
-            
+
             extractEntities(doc) {
                 const entities = [];
                 const entityElements = doc.querySelectorAll('entity');
-                
+
                 entityElements.forEach(element => {
                     const entity = {
                         name: element.getAttribute('name') || 'Unknown',
@@ -542,14 +638,14 @@
                     };
                     entities.push(entity);
                 });
-                
+
                 return entities;
             }
-            
+
             extractAttributes(entityElement) {
                 const attributes = [];
                 const attrElements = entityElement.querySelectorAll('attribute');
-                
+
                 attrElements.forEach(attr => {
                     attributes.push({
                         name: attr.getAttribute('name') || 'Unknown',
@@ -559,14 +655,14 @@
                         indexed: attr.getAttribute('indexed') === 'YES'
                     });
                 });
-                
+
                 return attributes;
             }
-            
+
             extractRelationships(entityElement) {
                 const relationships = [];
                 const relElements = entityElement.querySelectorAll('relationship');
-                
+
                 relElements.forEach(rel => {
                     relationships.push({
                         name: rel.getAttribute('name') || 'Unknown',
@@ -577,10 +673,10 @@
                         inverse: rel.getAttribute('inverseName')
                     });
                 });
-                
+
                 return relationships;
             }
-            
+
             resolveRelationships(model) {
                 // Add back-references and validate relationships
                 model.entities.forEach(entity => {
@@ -591,21 +687,21 @@
                         }
                     });
                 });
-                
+
                 return model;
             }
-            
+
             extractFetchedProperties(entityElement) {
                 const fetchedProperties = [];
                 const fpElements = entityElement.querySelectorAll('fetchedProperty');
-                
+
                 fpElements.forEach(fp => {
                     fetchedProperties.push({
                         name: fp.getAttribute('name') || 'Unknown',
                         optional: fp.getAttribute('optional') === 'YES'
                     });
                 });
-                
+
                 return fetchedProperties;
             }
         }
@@ -616,32 +712,32 @@
                 this.containerId = containerId;
                 this.container = d3.select(`#${containerId}`);
                 this.container.selectAll('*').remove(); // Clear previous content
-                
+
                 this.width = 1200;
                 this.height = 800;
                 this.selectedNode = null;
-                
+
                 this.svg = this.container.append('svg')
                     .attr('width', '100%')
                     .attr('height', '100%')
                     .attr('viewBox', `0 0 ${this.width} ${this.height}`)
                     .attr('preserveAspectRatio', 'xMidYMid meet');
-                
+
                 // Add zoom behavior
                 this.zoom = d3.zoom()
                     .scaleExtent([0.1, 3])
                     .on('zoom', (event) => {
                         this.g.attr('transform', event.transform);
                     });
-                
+
                 this.svg.call(this.zoom);
-                
+
                 // Create main group for zoomable content
                 this.g = this.svg.append('g');
-                
+
                 // Add arrow markers for relationships
                 this.addArrowMarkers();
-                
+
                 // Create force simulation
                 this.simulation = d3.forceSimulation()
                     .force('link', d3.forceLink().id(d => d.id).distance(400))
@@ -649,10 +745,10 @@
                     .force('center', d3.forceCenter(this.width / 2, this.height / 2))
                     .force('collision', d3.forceCollide().radius(150));
             }
-            
+
             addArrowMarkers() {
                 const defs = this.svg.append('defs');
-                
+
                 // Standard arrow marker
                 defs.append('marker')
                     .attr('id', 'arrowhead')
@@ -668,17 +764,17 @@
                     .attr('fill', '#999')
                     .style('stroke', 'none');
             }
-            
+
             renderModel(model) {
                 this.model = model;
                 const nodes = this.createNodes(model.entities);
                 const links = this.createLinks(model.entities);
-                
+
                 this.updateSimulation(nodes, links);
                 this.renderLinks(links);
                 this.renderNodes(nodes);
             }
-            
+
             createNodes(entities) {
                 return entities.map(entity => ({
                     id: entity.name,
@@ -689,7 +785,7 @@
                     entity: entity
                 }));
             }
-            
+
             createLinks(entities) {
                 const links = [];
                 entities.forEach(entity => {
@@ -708,39 +804,39 @@
                 });
                 return links;
             }
-            
+
             updateSimulation(nodes, links) {
                 this.simulation
                     .nodes(nodes)
                     .force('link')
                     .links(links);
-                
+
                 this.simulation.alpha(1).restart();
             }
-            
+
             renderNodes(nodes) {
                 const nodeGroups = this.g.selectAll('.entity-node')
                     .data(nodes, d => d.id)
                     .join('g')
                     .attr('class', 'entity-node')
                     .call(this.enableDrag());
-                
+
                 // Remove old content
                 nodeGroups.selectAll('*').remove();
-                
+
                 // Calculate node dimensions
                 nodes.forEach(node => {
                     node.width = 220;
                     node.height = 60 + (node.attributes.length * 18);
                 });
-                
+
                 // Add rectangles
                 nodeGroups.append('rect')
                     .attr('width', d => d.width)
                     .attr('height', d => d.height)
                     .attr('x', d => -d.width / 2)
                     .attr('y', d => -d.height / 2);
-                
+
                 // Add entity name
                 nodeGroups.append('text')
                     .attr('class', 'entity-title')
@@ -748,7 +844,7 @@
                     .attr('y', d => -d.height / 2 + 20)
                     .attr('text-anchor', 'middle')
                     .text(d => d.name);
-                
+
                 // Add separator line
                 nodeGroups.append('line')
                     .attr('x1', d => -d.width / 2 + 10)
@@ -757,7 +853,7 @@
                     .attr('y2', d => -d.height / 2 + 30)
                     .attr('stroke', '#ddd')
                     .attr('stroke-width', 1);
-                
+
                 // Add attributes
                 nodeGroups.selectAll('.attribute')
                     .data(d => d.attributes)
@@ -769,21 +865,20 @@
                         return -parentNode.height / 2 + 50 + (i * 18);
                     })
                     .text(d => `${d.name}: ${d.type}${d.optional ? '?' : ''}`);
-                
+
                 // Add click handlers
                 nodeGroups.on('click', (event, d) => {
                     this.selectNode(d);
-                    this.updateEntityList();
-                    this.updateTableView(d.entity);
+                    window.app.showEntityDetails(d.entity);
                 });
-                
+
                 // Update positions on simulation tick
                 this.simulation.on('tick', () => {
                     nodeGroups.attr('transform', d => `translate(${d.x}, ${d.y})`);
                     this.updateLinkPositions();
                 });
             }
-            
+
             renderLinks(links) {
                 this.linkElements = this.g.selectAll('.relationship-link')
                     .data(links, d => `${d.source.id || d.source}-${d.target.id || d.target}`)
@@ -791,36 +886,36 @@
                     .attr('class', d => `relationship-link ${d.type}`)
                     .attr('marker-end', 'url(#arrowhead)');
             }
-            
+
             updateLinkPositions() {
                 if (this.linkElements) {
                     this.linkElements.attr('d', d => {
                         // Calculate path from source to target, accounting for node boundaries
                         const source = d.source;
                         const target = d.target;
-                        
+
                         if (!source || !target) return '';
-                        
+
                         const dx = target.x - source.x;
                         const dy = target.y - source.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
-                        
+
                         if (distance === 0) return '';
-                        
+
                         // Calculate edge points on node boundaries
                         const sourceRadius = Math.max(source.width || 100, source.height || 60) / 2;
                         const targetRadius = Math.max(target.width || 100, target.height || 60) / 2;
-                        
+
                         const sourceX = source.x + (dx / distance) * sourceRadius;
                         const sourceY = source.y + (dy / distance) * sourceRadius;
                         const targetX = target.x - (dx / distance) * targetRadius;
                         const targetY = target.y - (dy / distance) * targetRadius;
-                        
+
                         return `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
                     });
                 }
             }
-            
+
             enableDrag() {
                 return d3.drag()
                     .on('start', (event, d) => {
@@ -838,70 +933,31 @@
                         d.fy = null;
                     });
             }
-            
+
             selectNode(node) {
                 // Update visual selection
                 this.g.selectAll('.entity-node')
                     .classed('selected', d => d.id === node.id);
-                
+
                 this.selectedNode = node;
-                
+
                 // Highlight related relationships
                 this.g.selectAll('.relationship-link')
                     .classed('selected', d => {
                         return (d.source.id === node.id || d.target.id === node.id);
                     });
             }
-            
+
             updateEntityList() {
                 if (this.selectedNode) {
                     const entityItems = document.querySelectorAll('.entity-item');
                     entityItems.forEach(item => {
-                        item.classList.toggle('selected', 
+                        item.classList.toggle('selected',
                             item.dataset.entityName === this.selectedNode.name);
                     });
                 }
             }
-            
-            updateTableView(entity) {
-                const container = document.getElementById('table-container');
-                container.innerHTML = `
-                    <div class="table-view">
-                        <div class="table-header">
-                            ${entity.name} - Attributes
-                        </div>
-                        <div class="table-content">
-                            ${entity.attributes.map(attr => `
-                                <div class="table-row">
-                                    <div class="table-cell name">${attr.name}</div>
-                                    <div class="table-cell type">${attr.type}</div>
-                                    <div class="table-cell">${attr.optional ? 'Optional' : 'Required'}</div>
-                                    <div class="table-cell">${attr.indexed ? 'Indexed' : ''}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    ${entity.relationships.length > 0 ? `
-                    <div class="table-view" style="margin-top: 1rem;">
-                        <div class="table-header">
-                            ${entity.name} - Relationships
-                        </div>
-                        <div class="table-content">
-                            ${entity.relationships.map(rel => `
-                                <div class="table-row">
-                                    <div class="table-cell name">${rel.name}</div>
-                                    <div class="table-cell type">${rel.destination}</div>
-                                    <div class="table-cell">${rel.toMany ? 'To Many' : 'To One'}</div>
-                                    <div class="table-cell">${rel.deleteRule}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    ` : ''}
-                `;
-            }
-            
+
             resetView() {
                 this.svg.transition()
                     .duration(750)
@@ -916,27 +972,27 @@
                 this.onFilesProcessed = onFilesProcessed;
                 this.setupEventListeners();
             }
-            
+
             setupEventListeners() {
                 this.element.addEventListener('click', this.showFilePicker.bind(this));
-                
+
                 // Folder input handler
                 document.getElementById('folder-input').addEventListener('change', (e) => {
                     this.processFiles(Array.from(e.target.files));
                 });
             }
-            
+
             showFilePicker() {
                 // This will be handled by button click
             }
-            
+
             async processFiles(files) {
                 console.log('Processing files:', files.map(f => f.name));
-                
+
                 for (const file of files) {
                     const fileType = FileTypeDetector.detectFileType(file);
                     console.log(`File: ${file.name}, Type: ${fileType}`);
-                    
+
                     try {
                         await this.handleFileByType(file, fileType);
                     } catch (error) {
@@ -945,7 +1001,7 @@
                     }
                 }
             }
-            
+
             async handleFileByType(file, fileType) {
                 switch (fileType) {
                     case 'xcdatamodel_contents':
@@ -961,17 +1017,17 @@
                         }
                 }
             }
-            
+
             async handleCoreDataFile(file) {
                 const xmlText = await file.text();
                 const parser = new CoreDataModelParser();
                 const model = parser.parseXMLContents(xmlText);
-                
+
                 if (this.onFilesProcessed) {
                     this.onFilesProcessed(model);
                 }
             }
-            
+
             showError(message) {
                 const container = document.getElementById('entities-container');
                 container.innerHTML = `<div class="error">${message}</div>`;
@@ -987,134 +1043,122 @@
                 this.initializeComponents();
                 this.setupEventListeners();
             }
-            
+
             initializeComponents() {
                 // Initialize folder selector
                 this.folderSelector = new FolderSelector('folder-selector', (model) => {
                     this.loadModel(model);
                 });
-                
+
                 // Initialize graph renderer
                 this.graphRenderer = new DatabaseGraphRenderer('graph-container');
             }
-            
+
             setupEventListeners() {
-                // Tab switching
-                document.querySelectorAll('.tab').forEach(tab => {
-                    tab.addEventListener('click', (e) => {
-                        this.switchView(e.target.dataset.view);
-                    });
-                });
-                
                 // Entity search
                 const searchInput = document.getElementById('entity-search');
                 searchInput.addEventListener('input', (e) => {
                     this.filterEntities(e.target.value);
                 });
-                
+
                 // Toolbar buttons
                 document.getElementById('reset-zoom').addEventListener('click', () => {
                     if (this.graphRenderer) {
                         this.graphRenderer.resetView();
                     }
                 });
-                
+
                 document.getElementById('export-svg').addEventListener('click', () => {
                     this.exportSVG();
                 });
-                
+
                 document.getElementById('export-png').addEventListener('click', () => {
                     this.exportPNG();
                 });
             }
-            
+
             loadModel(model) {
                 console.log('Loading model:', model);
                 this.currentModel = model;
                 this.allEntities = model.entities;
-                
+
                 // Clear search input
                 document.getElementById('entity-search').value = '';
-                
+
                 // Update entity list
                 this.updateEntityList(model.entities);
-                
+
                 // Render graph
                 if (this.graphRenderer) {
                     this.graphRenderer.renderModel(model);
                 }
-                
-                // Show success message
-                const container = document.getElementById('entities-container');
-                if (model.entities.length === 0) {
-                    container.innerHTML = '<div class="loading">No entities found in model</div>';
-                } else {
-                    // Entity list will be updated by updateEntityList
-                }
+
+                // Reset entity details to empty state
+                this.showEmptyEntityDetails();
             }
-            
+
             filterEntities(searchTerm) {
                 if (!this.allEntities || this.allEntities.length === 0) {
                     return;
                 }
-                
+
                 const filteredEntities = this.allEntities.filter(entity => {
                     // Search in entity name
                     if (entity.name.toLowerCase().includes(searchTerm.toLowerCase())) {
                         return true;
                     }
-                    
+
                     // Search in attribute names
-                    if (entity.attributes.some(attr => 
+                    if (entity.attributes.some(attr =>
                         attr.name.toLowerCase().includes(searchTerm.toLowerCase())
                     )) {
                         return true;
                     }
-                    
+
                     // Search in relationship names
-                    if (entity.relationships.some(rel => 
+                    if (entity.relationships.some(rel =>
                         rel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         (rel.destination && rel.destination.toLowerCase().includes(searchTerm.toLowerCase()))
                     )) {
                         return true;
                     }
-                    
+
                     return false;
                 });
-                
+
                 this.updateEntityList(filteredEntities);
             }
-            
+
             updateEntityList(entities) {
                 const container = document.getElementById('entities-container');
-                
+
                 if (entities.length === 0) {
-                    container.innerHTML = '<div class="loading">No entities found</div>';
+                    container.innerHTML = '<div class="loading"><div class="icon">🔍</div><div>No entities found</div></div>';
                     return;
                 }
-                
+
                 container.innerHTML = entities.map(entity => `
                     <div class="entity-item" data-entity-name="${entity.name}">
                         <div class="entity-name">${entity.name}</div>
                         <div class="entity-info">
-                            ${entity.attributes.length} attributes, 
+                            ${entity.attributes.length} attributes,
                             ${entity.relationships.length} relationships
                         </div>
                     </div>
                 `).join('');
-                
+
                 // Add click handlers
                 container.querySelectorAll('.entity-item').forEach(item => {
                     item.addEventListener('click', (e) => {
                         const entityName = e.currentTarget.dataset.entityName;
                         const entity = entities.find(e => e.name === entityName);
-                        
+
                         if (entity && this.graphRenderer) {
                             const node = { id: entityName, name: entityName, entity: entity };
                             this.graphRenderer.selectNode(node);
-                            this.graphRenderer.updateTableView(entity);
+                            this.showEntityDetails(entity);
                         }
-                        
+
                         // Update selection in entity list
                         container.querySelectorAll('.entity-item').forEach(el => {
                             el.classList.remove('selected');
@@ -1123,22 +1167,115 @@
                     });
                 });
             }
-            
-            switchView(viewName) {
-                // Update tab states
-                document.querySelectorAll('.tab').forEach(tab => {
-                    tab.classList.toggle('active', tab.dataset.view === viewName);
-                });
-                
-                // Update view containers
-                document.querySelectorAll('.view-container').forEach(container => {
-                    container.classList.toggle('active', container.id === `${viewName}-container`);
-                });
+
+            showEntityDetails(entity) {
+                const detailsContainer = document.querySelector('.entity-details');
+
+                detailsContainer.innerHTML = `
+                    <h3>
+                        <span class="entity-icon">E</span>
+                        ${entity.name}
+                    </h3>
+
+                    <div class="details-section">
+                        <h4>Attributes (${entity.attributes.length})</h4>
+                        ${entity.attributes.length > 0 ? `
+                            <table class="details-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Properties</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${entity.attributes.map(attr => `
+                                        <tr>
+                                            <td class="table-name">${attr.name}</td>
+                                            <td class="table-type">${attr.type}</td>
+                                            <td class="table-properties">
+                                                <span class="property-tag ${attr.optional ? 'optional' : 'required'}">
+                                                    ${attr.optional ? 'Optional' : 'Required'}
+                                                </span>
+                                                ${attr.indexed ? '<span class="property-tag indexed">Indexed</span>' : ''}
+                                                ${attr.defaultValue ? `<span class="property-tag">Default: ${attr.defaultValue}</span>` : ''}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<div class="empty-table-message">No attributes</div>'}
+                    </div>
+
+                    <div class="details-section">
+                        <h4>Relationships (${entity.relationships.length})</h4>
+                        ${entity.relationships.length > 0 ? `
+                            <table class="details-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Destination</th>
+                                        <th>Properties</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${entity.relationships.map(rel => `
+                                        <tr>
+                                            <td class="table-name">${rel.name}</td>
+                                            <td class="table-type">${rel.destination || 'Unknown'}</td>
+                                            <td class="table-properties">
+                                                <span class="property-tag ${rel.toMany ? 'to-many' : 'to-one'}">
+                                                    ${rel.toMany ? 'To Many' : 'To One'}
+                                                </span>
+                                                <span class="property-tag ${rel.optional ? 'optional' : 'required'}">
+                                                    ${rel.optional ? 'Optional' : 'Required'}
+                                                </span>
+                                                <span class="property-tag">Delete: ${rel.deleteRule}</span>
+                                                ${rel.inverse ? `<span class="property-tag">Inverse: ${rel.inverse}</span>` : ''}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<div class="empty-table-message">No relationships</div>'}
+                    </div>
+
+                    ${entity.representedClassName ? `
+                    <div class="details-section">
+                        <h4>Class Information</h4>
+                        <table class="details-table">
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="table-name">Class Name</td>
+                                    <td class="table-type">${entity.representedClassName}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    ` : ''}
+                `;
             }
-            
+
+            showEmptyEntityDetails() {
+                const detailsContainer = document.querySelector('.entity-details');
+                detailsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🎯</div>
+                        <h4>Select an Entity</h4>
+                        <p>Click on an entity in the graph or list to view its details</p>
+                    </div>
+                `;
+            }
+
             exportSVG() {
                 if (!this.graphRenderer) return;
-                
+
                 const svgElement = document.querySelector('#graph-container svg');
                 if (svgElement) {
                     const serializer = new XMLSerializer();
@@ -1147,7 +1284,7 @@
                     saveAs(blob, 'core-data-model.svg');
                 }
             }
-            
+
             exportPNG() {
                 // This would require html2canvas or similar library
                 console.log('PNG export not yet implemented');
