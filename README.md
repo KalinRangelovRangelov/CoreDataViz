@@ -1,1 +1,3 @@
-Claude generated web site for vizualising `.xcdatamodeld` models. 
+Claude generated vizualiser for `.xcdatamodeld`. 
+
+![Screenshot](screenshot.png)
