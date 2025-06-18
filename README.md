@@ -1,3 +1,11 @@
-Claude generated vizualiser for `.xcdatamodeld`. 
+# Core Data model visualizer
+
+Claude generated visualizer for `.xcdatamodeld`.
+
+## Usage
+
+Open `index.html`
+
+## Screenshot
 
 ![Screenshot](screenshot.png)
