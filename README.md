@@ -1,1 +1,1 @@
-Claude generated web interface for vizualising `.xcdatamodeld` models. 
+Claude generated web site for vizualising `.xcdatamodeld` models. 
