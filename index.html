@@ -443,6 +443,13 @@
             stroke-width: 3;
         }
 
+        .relationship-link.inheritance {
+            stroke: #AF52DE;
+            stroke-width: 2;
+            stroke-dasharray: 8,4;
+            marker-end: url(#inheritance-arrow);
+        }
+
         /* Loading and Error States */
         .loading {
             display: flex;
@@ -632,6 +639,7 @@
                     const entity = {
                         name: element.getAttribute('name') || 'Unknown',
                         representedClassName: element.getAttribute('representedClassName'),
+                        parentEntity: element.getAttribute('parentEntity'),
                         attributes: this.extractAttributes(element),
                         relationships: this.extractRelationships(element),
                         fetchedProperties: this.extractFetchedProperties(element)
@@ -763,6 +771,22 @@
                     .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
                     .attr('fill', '#999')
                     .style('stroke', 'none');
+
+                // Inheritance arrow marker (triangle)
+                defs.append('marker')
+                    .attr('id', 'inheritance-arrow')
+                    .attr('viewBox', '-0 -5 10 10')
+                    .attr('refX', 8)
+                    .attr('refY', 0)
+                    .attr('orient', 'auto')
+                    .attr('markerWidth', 8)
+                    .attr('markerHeight', 8)
+                    .attr('xoverflow', 'visible')
+                    .append('svg:path')
+                    .attr('d', 'M 0,-5 L 10 ,0 L 0,5 Z')
+                    .attr('fill', 'none')
+                    .attr('stroke', '#AF52DE')
+                    .attr('stroke-width', 2);
             }
 
             renderModel(model) {
@@ -789,6 +813,7 @@
             createLinks(entities) {
                 const links = [];
                 entities.forEach(entity => {
+                    // Add relationship links
                     entity.relationships.forEach(rel => {
                         if (rel.destination) {
                             links.push({
@@ -797,10 +822,22 @@
                                 type: rel.toMany ? 'one-to-many' : 'one-to-one',
                                 label: rel.name,
                                 deleteRule: rel.deleteRule,
-                                relationship: rel
+                                relationship: rel,
+                                linkType: 'relationship'
                             });
                         }
                     });
+                    
+                    // Add inheritance links
+                    if (entity.parentEntity) {
+                        links.push({
+                            source: entity.name,
+                            target: entity.parentEntity,
+                            type: 'inheritance',
+                            label: 'inherits from',
+                            linkType: 'inheritance'
+                        });
+                    }
                 });
                 return links;
             }
@@ -827,7 +864,11 @@
                 // Calculate node dimensions
                 nodes.forEach(node => {
                     node.width = 220;
-                    node.height = 60 + (node.attributes.length * 18);
+                    // Base height + attributes + inheritance info (minimum 80px for inherited entities)
+                    const baseHeight = 60;
+                    const attributeHeight = node.attributes.length * 18;
+                    const inheritanceHeight = node.entity.parentEntity ? 20 : 0;
+                    node.height = Math.max(80, baseHeight + attributeHeight + inheritanceHeight);
                 });
 
                 // Add rectangles
@@ -865,6 +906,16 @@
                         return -parentNode.height / 2 + 50 + (i * 18);
                     })
                     .text(d => `${d.name}: ${d.type}${d.optional ? '?' : ''}`);
+
+                // Add inheritance information
+                nodeGroups.filter(d => d.entity.parentEntity)
+                    .append('text')
+                    .attr('class', 'inheritance-info')
+                    .attr('x', -100)
+                    .attr('y', d => -d.height / 2 + 50 + (d.attributes.length * 18))
+                    .attr('font-style', 'italic')
+                    .attr('fill', '#007AFF')
+                    .text(d => `⬆ inherits from ${d.entity.parentEntity}`);
 
                 // Add click handlers
                 nodeGroups.on('click', (event, d) => {
@@ -1143,6 +1194,7 @@
                         <div class="entity-info">
                             ${entity.attributes.length} attributes,
                             ${entity.relationships.length} relationships
+                            ${entity.parentEntity ? `<br>⬆ inherits from ${entity.parentEntity}` : ''}
                         </div>
                     </div>
                 `).join('');
@@ -1175,6 +1227,7 @@
                     <h3>
                         <span class="entity-icon">E</span>
                         ${entity.name}
+                        ${entity.parentEntity ? `<br><small style="color: #007AFF; font-weight: normal;">⬆ inherits from ${entity.parentEntity}</small>` : ''}
                     </h3>
 
                     <div class="details-section">
